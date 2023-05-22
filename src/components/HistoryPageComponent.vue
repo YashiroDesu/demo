@@ -1,22 +1,28 @@
 <template>
-<div v-if="addresses.length > 0" class="card">
-    <button type="button" class="btn btn-danger" @click="deleteSelectedRecords" :disabled="selectedRecords.length === 0">
-        Delete
-    </button>
-    <div class="table-responsive-lg">
+<div class="card" style="width: 300px;">
+    <div class="table-container">
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th scope="col"></th>
+                    <th>
+                        <button type="button" class="btn btn-danger btn-sm" @click="deleteSelectedRecords" :disabled="selectedRecords.length === 0">
+                            Delete
+                        </button>
+                    </th>
                     <th scope="col">Recent searches</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody v-if="addresses.length > 0">
                 <tr v-for="address in paginatedAddresses" :key="address[0]">
                     <td>
                         <input type="checkbox" v-model="selectedRecords" :value="address[0]">
                     </td>
                     <td>{{ address[1] }}</td>
+                </tr>
+            </tbody>
+            <tbody v-else>
+                <tr>
+                    <td colspan="2" class="text-center">No records found.</td>
                 </tr>
             </tbody>
         </table>
@@ -54,13 +60,11 @@ export default {
         }
     },
     computed: {
-
         // Calculates the number of paginated addresses per record page
         paginatedAddresses() {
             const startIndex = (this.currentPage - 1) * this.recordsPerPage
-            const endIndex = Math.min(startIndex + this.recordsPerPage, this.addresses.length)
-            const slicedAddresses = this.addresses.slice(startIndex, endIndex)
-            return slicedAddresses
+            const endIndex = startIndex + this.recordsPerPage;
+            return this.addresses.slice(startIndex, endIndex)
         },
 
         // Calculates the total number of pages based on the number of available addresses divided by the recordsPerPage variable
@@ -72,13 +76,11 @@ export default {
         // Called when a user clicks on a non-active page number; calculates which page should be active instead
         changePage(page) {
             if (page >= 1 && page <= this.totalPages) {
-                this.currentPage = page
-            } else if (page > this.totalPages && this.totalPages > 0) {
-                this.currentPage = this.totalPages
+                this.currentPage = page;
             }
         },
-        // Called when a user clicks on the "Previous" button
 
+        // Called when a user clicks on the "Previous" button
         previousPage() {
             if (this.currentPage > 1) {
                 this.currentPage--
@@ -94,8 +96,12 @@ export default {
 
         // Called when a user presses the "Delete" button, emits an event with the indexes of the selected records to be deleted and resets the selectedRecords array
         deleteSelectedRecords() {
-            const indexesToDelete = [...this.selectedRecords]
-            this.$emit('indexes-to-delete', indexesToDelete)
+            this.$emit('indexes-to-delete', this.selectedRecords)
+            // Move to the previous page if current page is empty after deletion
+            const newTotalPages = Math.ceil((this.addresses.length - this.selectedRecords.length) / this.recordsPerPage);
+            if(newTotalPages < this.totalPages){
+                this.previousPage()
+            }
             this.selectedRecords = []
         }
     }
